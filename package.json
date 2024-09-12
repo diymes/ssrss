@@ -1,0 +1,8 @@
+{
+  "name": "rss",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

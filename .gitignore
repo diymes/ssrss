@@ -1,0 +1,6 @@
+node_modules
+bun.lockb
+config.json
+index.css
+db.json
+db.json.gz

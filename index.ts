@@ -1,0 +1,190 @@
+import { gunzipSync, gzipSync } from "bun"
+
+class DB {
+  posts: Post[] = []
+  last_update: Date = new Date()
+}
+
+class Conf {
+  port: number = 8080
+  title: string = "RSS Feed"
+  description: string = "RSS Feed Page"
+  posts_per_page: number = 32
+  feeds: string[] = []
+  update_interval_min: number = 15 
+}
+
+type Post = {
+  title: string
+  link: string
+  date: Date
+  site: string
+}
+
+let config = new Conf();
+//check if config file exists
+if (await Bun.file('./config.json').exists()) {
+  let c = await Bun.file('./config.json').json()
+  if (c !== config) {
+    for (let key in c) {
+      // @ts-ignore
+      config[key] = c[key]
+    }
+    await Bun.write('./config.json', JSON.stringify(config))
+  }
+} else {
+  await Bun.write('./config.json', JSON.stringify(config))
+}
+
+function template(feed: Post[], page: number, total_pages: number = 0) {
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${config.title}</title>
+    <link rel="stylesheet" href="/css">
+  </head>
+
+  <body>
+    <h1>${config.title}</h1>
+    <h3>${config.description}</h3>
+    <ul>
+      ${
+        feed.map((post) => `
+          <li>
+          <a href="${post.link}">${post.title}</a>
+          <p>${post.date.toLocaleDateString()} | <a href="https://${post.site}">${post.site}</a> <a href="/${post.site}">→</a></p>
+          <hr>
+          </li>
+        `).join('')
+      }
+    </ul>
+    <p>${page > 0 ? `<a href="/${page - 1}"><==</a>` : ''} ${page}/${total_pages} ${page < total_pages ? `<a href="/${page + 1}">==></a>` : ''}</p>
+
+  </body>
+</html>
+  `
+}
+
+async function getFeed(url: string) {
+  let site = /https:\/\/([\s\S]*?)\//.exec(url)?.[1]
+  if (!site) {
+    return []
+  }
+  let response
+  try {
+    response = await fetch(url)
+  } catch (e) {
+    return []
+  }
+  const text = await response.text()
+
+  let feed: Post[] = []
+
+  // parse xml regex
+  const regex = /<item>([\s\S]*?)<\/item>/g
+
+  let matches = text.match(regex)
+  if (matches) {
+    matches.forEach((match) => {
+      let title = /<title>([\s\S]*?)<\/title>/.exec(match)?.[1]
+
+      if (title && title.includes('CDATA')) {
+        title = title.replace('<![CDATA[', '').replace(']]>', '')
+      }
+      let link = /<link>([\s\S]*?)<\/link>/.exec(match)?.[1]
+      let date = /<pubDate>([\s\S]*?)<\/pubDate>/.exec(match)?.[1]
+
+      if (!title || !link || !date || !site) {
+        return []
+      }
+
+      let d = new Date(date)
+
+      feed.push({
+          title: title,
+          link: link,
+          date: d,
+          site: site
+      })
+    })
+  }
+
+  return feed
+}
+
+async function generate_static() {
+  let db = new DB()
+  if (await Bun.file('./db.json.gz').exists()) {
+    let txt = gunzipSync(await Bun.file('./db.json.gz').bytes())
+    let str = new TextDecoder().decode(txt)
+    db = JSON.parse(str)
+    for (let p of db.posts) {
+      // convert string to date
+      p.date = new Date(p.date)
+    }
+  }
+
+  let pages: Record<`/${string}`, Response> = {}
+
+  let css = gzipSync(await Bun.file('./index.css').text())
+  pages['/css'] = new Response(css, {headers: {'Content-Type': 'text/css', 'Content-Encoding': 'gzip'}})
+
+  let feed: Post[] = db.posts
+
+  for (let url of config.feeds) {
+    let blog = (await getFeed(url)).sort((a, b) => b.date.getTime() - a.date.getTime())
+    let page = blog[0].site
+    let html = gzipSync(template(blog, 0, 0))
+    pages[`/${page}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
+
+    for (let post of blog) {
+      if (feed.findIndex((p) => p.link === post.link) === -1) {
+        feed.push(post)
+      }
+    }
+    db.posts = feed
+    db.last_update = new Date()
+    await Bun.write('./db.json.gz', gzipSync(JSON.stringify(db)))
+  }
+  feed.sort((a, b) => b.date.getTime() - a.date.getTime())
+
+  let total_pages = Math.floor(feed.length / config.posts_per_page)
+
+  for (let i = 0; i < Math.ceil(feed.length / config.posts_per_page); i++) {
+    let html = gzipSync(template(feed.slice(i * config.posts_per_page, (i + 1) * config.posts_per_page), i, total_pages))
+    pages[`/${i}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
+  }
+
+  let html = gzipSync(template(feed.slice(0, config.posts_per_page), 0, total_pages))
+  pages[`/`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
+
+  return pages
+}
+
+const server = Bun.serve({
+  static: await generate_static(),
+  port: config.port,
+  async fetch(req) {
+    return new Response("404!", {status: 404});
+  },
+});
+
+setInterval(async () => {
+  console.log('Updating feed...')
+  let static_pages = await generate_static()
+
+  server.reload({
+    static: static_pages,
+    port: config.port,
+    async fetch(req) {
+      return new Response("404!", {status: 404});
+    },
+  })
+
+}, config.update_interval_min * 60 * 1000)
+
+
+console.log(`Server running on http://localhost:${config.port}`);
