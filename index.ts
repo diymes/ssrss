@@ -1,4 +1,4 @@
-import { gunzipSync, gzipSync } from "bun"
+import { env, gunzipSync, gzipSync } from "bun"
 
 class DB {
   posts: Post[] = []
@@ -6,12 +6,12 @@ class DB {
 }
 
 class Conf {
-  port: number = 8080
-  title: string = "RSS Feed"
-  description: string = "RSS Feed Page"
-  posts_per_page: number = 32
-  feeds: string[] = []
-  update_interval_min: number = 15 
+  port: number = parseInt(env.PORT? env.PORT : '8080')
+  title: string = env.TITLE? env.TITLE : "RSS Feed"
+  description: string = env.DESCRIPTION? env.DESCRIPTION : "RSS Feed Page"
+  posts_per_page: number = env.POSTS_PER_PAGE? parseInt(env.POSTS_PER_PAGE) : 32
+  feeds: string[] = env.FEEDS? env.FEEDS.split(',') : []
+  update_interval_min: number = env.UPDATE_INTERVAL_MIN? parseInt(env.UPDATE_INTERVAL_MIN) : 15
 }
 
 type Post = {
