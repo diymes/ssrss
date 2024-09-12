@@ -21,6 +21,65 @@ type Post = {
   site: string
 }
 
+let css = `
+html {
+  font-family: monospace;
+  background-color: #161718;
+  color: #f8fbfa;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-around;
+}
+
+h1, h3 {
+  background-color: #faa8b4;
+  padding: 4px;
+  text-align: right;
+}
+
+body {
+  width: 900px;
+}
+
+p {
+  margin: 0.5em 0;
+}
+
+li a {
+  font-size: 120%;
+  color: #faa8b4;
+}
+
+a:hover {
+  color: #dcab88;
+}
+
+a:visited {
+  color: #cea07f;
+}
+
+ul {
+  padding: 0;
+}
+
+li {
+  list-style-type: none;
+}
+
+li p {
+  color: #f8fbfac0;
+}
+
+hr {
+  border: 1px solid #f8fbfa20;
+}
+
+li p a, li p a:visited, a {
+  color: #faa8b4d0;
+  font-size: 100%;
+}
+`
+
 let config = new Conf();
 //check if config file exists
 if (await Bun.file('./config.json').exists()) {
@@ -129,8 +188,12 @@ async function generate_static() {
 
   let pages: Record<`/${string}`, Response> = {}
 
-  let css = gzipSync(await Bun.file('./index.css').text())
-  pages['/css'] = new Response(css, {headers: {'Content-Type': 'text/css', 'Content-Encoding': 'gzip'}})
+  if (await Bun.file('./index.css').exists()) {
+    css = await Bun.file('./index.css').text()
+  } else {
+    await Bun.write('./index.css', css)
+  }
+  pages['/css'] = new Response(gzipSync(css), {headers: {'Content-Type': 'text/css', 'Content-Encoding': 'gzip'}})
 
   let feed: Post[] = db.posts
 
