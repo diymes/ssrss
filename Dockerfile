@@ -1,8 +1,8 @@
 FROM oven/bun:canary
 
-WORKDIR ./
+WORKDIR /app
 
-RUN ls
+COPY index.ts bun.lockb package.json tsconfig.json /app/
 
 RUN apt-get update && apt-get install unzip
 
