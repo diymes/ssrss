@@ -134,6 +134,22 @@ function template(feed: Post[], page: number, total_pages: number = 0) {
   `
 }
 
+let entityMap: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+  '/': '&#x2F;',
+  '`': '&#x60;',
+  '=': '&#x3D;'
+};
+function escapeHtml (string: string) {
+  return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+    return entityMap[s];
+  });
+}
+
 async function getFeed(url: string) {
   let site = /https:\/\/([\s\S]*?)\//.exec(url)?.[1]
   if (!site) {
@@ -169,6 +185,11 @@ async function getFeed(url: string) {
         console.log(`xml parsing error for ${url}`)
         return []
       }
+      
+      //sanitize
+      title = escapeHtml(title)
+      link = escapeHtml(link)
+      date = escapeHtml(date)
 
       let d = new Date(date)
 
@@ -223,7 +244,7 @@ async function generate_static() {
       pages[`/${page}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
   
       for (let post of blog) {
-        if (feed.findIndex((p) => p.link === post.link) === -1) {
+        if (feed.findIndex((p) => p.link == post.link) === -1) {
           feed.push(post)
         }
       }
