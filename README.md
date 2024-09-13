@@ -5,7 +5,8 @@ x- generates and caches all pages as static, gzipped html
 x- no clientside javascript
 ```
 
-To run:
+`x- running:`
+
 ```bash
 bun run start
 // or
@@ -13,7 +14,8 @@ bun run index.ts
 ```
 there is also an included Dockerfile
 
-configuration:
+`x- configuration:`
+
 the application generates a config file, and it's own .css for you after launching, which you are free to edit and restart
 in addition it scans for a few environment variables which it will apply to the config (if file does not exist yet) which is more useful for docker setup
 they are as follows:
@@ -26,7 +28,8 @@ FEEDS: comma seperated list of rss urls, must include https://
 UPDATE_INTERVAL_MIN: how many minutes between updates - default 45
 ```
 
-etc.
+`x- etc.`
+
 server maintains a file db.json.gz which is predictably a gzipped json string containing all posts it's come across
 this is useful for rss feeds that only show X most recent posts. when configuring docker/hosting, may be pertinent to copy this as well as config.json and index.css between updates or over to new hosts.
 
