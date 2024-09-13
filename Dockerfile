@@ -1,6 +1,8 @@
 FROM oven/bun:canary
 
-WORKDIR .
+WORKDIR ./
+
+RUN ls
 
 RUN apt-get update && apt-get install unzip
 
