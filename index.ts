@@ -209,7 +209,7 @@ async function generate_static() {
     awaits.push(getFeed(url))
   }
 
-  Promise.all(awaits).then(async (blogs) => {
+  await Promise.all(awaits).then(async (blogs) => {
     for (let blog of blogs) {
       if (blog.length === 0) {
         console.log(`no posts found for ${blog}`)
