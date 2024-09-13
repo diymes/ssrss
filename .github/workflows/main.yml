@@ -1,16 +1,14 @@
 name: bundle executable
 on:
-  release:
-    types: [published]
-
+  push:
+    branches:
+    - main
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - name: checkout
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2.0.1
       with:
@@ -28,10 +26,4 @@ jobs:
         name: ssrs-cli
         # A file, directory or wildcard pattern that describes what to upload
         path: ssrs-cli 
-        retention-days: 90
-               
-    - name: Publish GitHub Release Artifacts
-      uses: SierraSoftworks/gh-releases@v1.0.7
-      with:
-        files: |
-          - ssrs-cli
+        retention-days: 90        
