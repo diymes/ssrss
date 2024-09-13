@@ -1,7 +1,11 @@
 hyperminimalist rss feed page
+
 x- polls rss feeds at specified urls
+
 x- generates and caches all pages as static, gzipped html
+
 x- no clientside javascript
+
 
 To run:
 ```bash
