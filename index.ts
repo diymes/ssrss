@@ -211,6 +211,7 @@ async function generate_static() {
     db.posts = feed
     db.last_update = new Date()
     await Bun.write('./db.json.gz', gzipSync(JSON.stringify(db)))
+    console.log(`total posts: ${feed.length}`)
   }
   feed.sort((a, b) => b.date.getTime() - a.date.getTime())
 
