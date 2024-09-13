@@ -207,6 +207,7 @@ async function generate_static() {
   for (let url of config.feeds) {
     let blog = (await getFeed(url)).sort((a, b) => b.date.getTime() - a.date.getTime())
     let page = blog[0].site
+    if (!page) continue
     let html = gzipSync(template(blog, 0, 0))
     pages[`/${page}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
 
