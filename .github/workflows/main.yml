@@ -1,8 +1,7 @@
 name: bundle executable
 on:
   release:
-    branches:
-      - main
+    types: [published]
 
 jobs:
   build:
