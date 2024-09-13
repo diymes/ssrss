@@ -1,24 +1,11 @@
-# Use the official Bun image
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:canary
 
-WORKDIR /app
+WORKDIR .
 
-# Install dependencies
-FROM base AS install
-RUN bun install
+RUN apt-get update && apt-get install unzip
 
-# Copy source code
-FROM base AS prerelease
-COPY --from=install /app/node_modules node_modules
-COPY . .
+RUN bun upgrade
 
-# Final stage
-FROM base AS release
-COPY --from=install /app/node_modules node_modules
-COPY --from=prerelease /app .
+RUN bun i
 
-# Run the app
-ENV NODE_ENV=production
-USER bun
-EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+CMD bun run start
