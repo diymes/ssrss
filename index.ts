@@ -10,7 +10,7 @@ class Conf {
   title: string = env.TITLE? env.TITLE : "RSS Feed"
   description: string = env.DESCRIPTION? env.DESCRIPTION : "RSS Feed Page"
   posts_per_page: number = env.POSTS_PER_PAGE? parseInt(env.POSTS_PER_PAGE) : 32
-  feeds: string[] = env.FEEDS? env.FEEDS.split(',') : []
+  feeds: string[] = env.FEEDS? env.FEEDS.replaceAll(/\r?\n|\r/g, '').split(',') : []
   update_interval_min: number = env.UPDATE_INTERVAL_MIN? parseInt(env.UPDATE_INTERVAL_MIN) : 15
 }
 
@@ -206,7 +206,10 @@ async function generate_static() {
 
   for (let url of config.feeds) {
     let blog = (await getFeed(url)).sort((a, b) => b.date.getTime() - a.date.getTime())
-    if (blog.length === 0) continue
+    if (blog.length === 0) {
+      console.log(`no posts found for ${url}`)
+      continue
+    }
     let page = blog[0].site
     let html = gzipSync(template(blog, 0, 0))
     pages[`/${page}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
