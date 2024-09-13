@@ -184,7 +184,13 @@ async function getFeed(url: string): Promise<Post[]> {
     console.log(`no posts found for ${url}`)
     return []
   }
-  const text = (await response.text()).replaceAll('<entry>', '<item>').replaceAll('</entry>', '</item>')
+  const text = (await response.text())
+    .replaceAll('<entry>', '<item>')
+    .replaceAll('</entry>', '</item>')
+    .replaceAll('<id>', '<link>')
+    .replaceAll('</id>', '</link>')
+    .replaceAll('<updated>', '<pubDate>')
+    .replaceAll('</updated>', '</pubDate>')
 
   let feed: Post[] = []
 
