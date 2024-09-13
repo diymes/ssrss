@@ -227,8 +227,9 @@ async function generate_static() {
   return pages
 }
 
+let pages = await generate_static()
 const server = Bun.serve({
-  static: await generate_static(),
+  static: pages,
   port: config.port,
   async fetch(req) {
     return new Response("404!", {status: 404});
