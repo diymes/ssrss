@@ -313,7 +313,7 @@ async function init() {
 }
 
 // start server
-await init()
+server = await init()
 
 // queue update job
 setInterval(async () => {
