@@ -1,8 +1,8 @@
 name: bundle executable
 on:
-  release:
-    types: [published]
-
+  push:
+    branches:
+    - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,8 +26,7 @@ jobs:
         name: ssrs-cli
         # A file, directory or wildcard pattern that describes what to upload
         path: ssrs-cli 
-        retention-days: 90
-               
+        retention-days: 90         
     - name: Publish GitHub Release Artifacts
       uses: SierraSoftworks/gh-releases@v1.0.7
       with:
