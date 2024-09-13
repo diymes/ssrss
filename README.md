@@ -17,8 +17,8 @@ there is also an included Dockerfile
 
 `x- configuration:`
 
-the application generates a config file, and it's own .css for you after launching, which you are free to edit and restart
-in addition it scans for a few environment variables which it will apply to the config (if file does not exist yet) which is more useful for docker setup
+the application generates a config file, and it's own .css for you after launching, which you are free to edit and restart to apply.
+in addition it scans for a few environment variables which it will apply to the config (when it initializes it), more useful for docker setup
 they are as follows:
 ```
 PORT: port to host from
@@ -28,6 +28,7 @@ POSTS_PER_PAGE: number of posts to limit to for creating pagination
 FEEDS: comma seperated list of rss urls, must include https://
 UPDATE_INTERVAL_MIN: how many minutes between updates - default 45
 ```
+the application prefers values set in config.json. the exception is FEEDS, which if any additional sources are added to the environment variables they will be added at launch.
 
 `x- etc.`
 
