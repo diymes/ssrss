@@ -6,6 +6,8 @@ x- no endpoints trigger filesys i/o
 x- no clientside javascript
 ```
 
+![https://i.imgur.com/aKliYwJ.png](https://i.imgur.com/aKliYwJ.png)
+
 `x- running:`
 
 ```bash
