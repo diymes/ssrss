@@ -2,6 +2,7 @@ hyperminimalist rss feed page
 ```
 x- polls rss feeds at specified urls
 x- generates and caches all pages as static, gzipped html
+x- no endpoints trigger filesys i/o
 x- no clientside javascript
 ```
 
