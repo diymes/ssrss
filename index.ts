@@ -89,6 +89,13 @@ if (await Bun.file('./config.json').exists()) {
       // @ts-ignore
       config[key] = c[key]
     }
+    let sources = env.FEEDS? env.FEEDS.split(',') : []
+    // get env var sources
+    for (let source of sources) {
+      if (config.feeds.indexOf(source) === -1) {
+        config.feeds.push(source)
+      }
+    }
     await Bun.write('./config.json', JSON.stringify(config))
   }
 } else {
