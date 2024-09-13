@@ -137,12 +137,14 @@ function template(feed: Post[], page: number, total_pages: number = 0) {
 async function getFeed(url: string) {
   let site = /https:\/\/([\s\S]*?)\//.exec(url)?.[1]
   if (!site) {
+    console.log(`no posts found for ${url}`)
     return []
   }
   let response
   try {
     response = await fetch(url)
   } catch (e) {
+    console.log(`no posts found for ${url}`)
     return []
   }
   const text = await response.text()
@@ -164,6 +166,7 @@ async function getFeed(url: string) {
       let date = /<pubDate>([\s\S]*?)<\/pubDate>/.exec(match)?.[1]
 
       if (!title || !link || !date || !site) {
+        console.log(`xml parsing error for ${url}`)
         return []
       }
 
@@ -212,7 +215,6 @@ async function generate_static() {
   await Promise.all(awaits).then(async (blogs) => {
     for (let blog of blogs) {
       if (blog.length === 0) {
-        console.log(`no posts found for ${blog}`)
         continue
       }
       blog = blog.sort((a, b) => b.date.getTime() - a.date.getTime())
