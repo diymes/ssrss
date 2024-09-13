@@ -204,26 +204,34 @@ async function generate_static() {
 
   let feed: Post[] = db.posts
 
+  let awaits: Promise<Post[]>[] = []
   for (let url of config.feeds) {
-    let blog = (await getFeed(url)).sort((a, b) => b.date.getTime() - a.date.getTime())
-    if (blog.length === 0) {
-      console.log(`no posts found for ${url}`)
-      continue
-    }
-    let page = blog[0].site
-    let html = gzipSync(template(blog, 0, 0))
-    pages[`/${page}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
-
-    for (let post of blog) {
-      if (feed.findIndex((p) => p.link === post.link) === -1) {
-        feed.push(post)
-      }
-    }
-    db.posts = feed
-    db.last_update = new Date()
-    await Bun.write('./db.json.gz', gzipSync(JSON.stringify(db)))
-    console.log(`total posts: ${feed.length}`)
+    awaits.push(getFeed(url))
   }
+
+  Promise.all(awaits).then(async (blogs) => {
+    for (let blog of blogs) {
+      if (blog.length === 0) {
+        console.log(`no posts found for ${blog}`)
+        continue
+      }
+      blog = blog.sort((a, b) => b.date.getTime() - a.date.getTime())
+      let page = blog[0].site
+      let html = gzipSync(template(blog, 0, 0))
+      pages[`/${page}`] = new Response(html, {headers: {'Content-Type': 'text/html', 'Content-Encoding': 'gzip'}})
+  
+      for (let post of blog) {
+        if (feed.findIndex((p) => p.link === post.link) === -1) {
+          feed.push(post)
+        }
+      }
+      db.posts = feed
+      db.last_update = new Date()
+      await Bun.write('./db.json.gz', gzipSync(JSON.stringify(db)))
+      console.log(`total posts: ${feed.length}`)
+    }
+  })
+
   feed.sort((a, b) => b.date.getTime() - a.date.getTime())
 
   let total_pages = Math.floor(feed.length / config.posts_per_page)
