@@ -152,7 +152,6 @@ function template(feed: Post[], page: number, total_pages: number = 0) {
 
 // #region application logic
 let entityMap: Record<string, string> = {
-  '&': '&amp;',
   '<': '&lt;',
   '>': '&gt;',
   '"': '&quot;',
