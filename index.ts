@@ -1,4 +1,4 @@
-import { env, gunzipSync, gzipSync } from "bun"
+import { env, gunzipSync, gzipSync, type Server } from "bun"
 
 class DB {
   posts: Post[] = []
@@ -12,6 +12,32 @@ class Conf {
   posts_per_page: number = env.POSTS_PER_PAGE? parseInt(env.POSTS_PER_PAGE) : 32
   feeds: string[] = env.FEEDS? env.FEEDS.replaceAll(/\r?\n|\r/g, '').split(',') : []
   update_interval_min: number = env.UPDATE_INTERVAL_MIN? parseInt(env.UPDATE_INTERVAL_MIN) : 15
+
+  static async getDefaultConfig() {
+    let config = new Conf();
+    //check if config file exists
+    if (await Bun.file('./config.json').exists()) {
+      let c = await Bun.file('./config.json').json()
+      if (c !== config) {
+        for (let key in c) {
+          // @ts-ignore
+          config[key] = c[key]
+        }
+        let sources = env.FEEDS? env.FEEDS.split(',') : []
+        // get env var sources
+        for (let source of sources) {
+          if (config.feeds.indexOf(source) === -1) {
+            config.feeds.push(source)
+          }
+        }
+        await Bun.write('./config.json', JSON.stringify(config))
+      }
+    } else {
+      await Bun.write('./config.json', JSON.stringify(config))
+    }
+
+    return config
+  }
 }
 
 type Post = {
@@ -21,6 +47,7 @@ type Post = {
   site: string
 }
 
+// #region css
 let css = `
 html {
   font-family: monospace;
@@ -79,29 +106,17 @@ li p a, li p a:visited, a {
   font-size: 100%;
 }
 `
+// #endregion
 
-let config = new Conf();
-//check if config file exists
-if (await Bun.file('./config.json').exists()) {
-  let c = await Bun.file('./config.json').json()
-  if (c !== config) {
-    for (let key in c) {
-      // @ts-ignore
-      config[key] = c[key]
-    }
-    let sources = env.FEEDS? env.FEEDS.split(',') : []
-    // get env var sources
-    for (let source of sources) {
-      if (config.feeds.indexOf(source) === -1) {
-        config.feeds.push(source)
-      }
-    }
-    await Bun.write('./config.json', JSON.stringify(config))
-  }
-} else {
-  await Bun.write('./config.json', JSON.stringify(config))
-}
-
+// #region html template
+/**
+ * generates the html template for section of a given feed
+ * requires providing pagination information
+ * @param feed 
+ * @param page 
+ * @param total_pages 
+ * @returns string: built html template
+ */
 function template(feed: Post[], page: number, total_pages: number = 0) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -133,7 +148,9 @@ function template(feed: Post[], page: number, total_pages: number = 0) {
 </html>
   `
 }
+// #endregion
 
+// #region application logic
 let entityMap: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
@@ -150,7 +167,12 @@ function escapeHtml (string: string) {
   });
 }
 
-async function getFeed(url: string) {
+/**
+ * get the feed from a given url, parse xml and sanitize
+ * @param url 
+ * @returns 
+ */
+async function getFeed(url: string): Promise<Post[]> {
   let site = /https:\/\/([\s\S]*?)\//.exec(url)?.[1]
   if (!site) {
     console.log(`no posts found for ${url}`)
@@ -205,7 +227,11 @@ async function getFeed(url: string) {
   return feed
 }
 
-async function generate_static() {
+/**
+ * generate static pages for caching
+ * @returns 
+ */
+async function generate_static(): Promise<Record<`/${string}`, Response>> {
   let db = new DB()
   if (await Bun.file('./db.json.gz').exists()) {
     let txt = gunzipSync(await Bun.file('./db.json.gz').bytes())
@@ -269,16 +295,28 @@ async function generate_static() {
 
   return pages
 }
+// #endregion
 
-let pages = await generate_static()
-const server = Bun.serve({
-  static: pages,
-  port: config.port,
-  async fetch(req) {
-    return new Response("404!", {status: 404});
-  },
-});
+// server initialization
+// 
+let server: Server
+let config: Conf = await Conf.getDefaultConfig()
 
+async function init() {
+  let pages = await generate_static()
+  return Bun.serve({
+    static: pages,
+    port: config.port,
+    async fetch(req) {
+      return new Response("404!", {status: 404});
+    },
+  });
+}
+
+// start server
+await init()
+
+// queue update job
 setInterval(async () => {
   console.log('Updating feed...')
   let static_pages = await generate_static()
@@ -292,6 +330,5 @@ setInterval(async () => {
   })
 
 }, config.update_interval_min * 60 * 1000)
-
 
 console.log(`Server running on http://localhost:${config.port}`);
